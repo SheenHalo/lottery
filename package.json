@@ -1,0 +1,22 @@
+{
+  "name": "lottery-cloudflare-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "tsc --noEmit",
+    "db:migrations:list": "wrangler d1 migrations list lottery-data",
+    "db:migrations:apply:local": "wrangler d1 migrations apply lottery-data --local",
+    "db:migrations:apply:remote": "wrangler d1 migrations apply lottery-data --remote",
+    "dev": "wrangler dev",
+    "dev:scheduled": "wrangler dev --test-scheduled",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "wrangler": "^4.19.1"
+  },
+  "dependencies": {
+    "xlsx": "^0.18.5"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "lottery-latest-crawler",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-06-03",
+  "workers_dev": true,
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "routes": [
+    {
+      "pattern": "lottery.aback.fun",
+      "custom_domain": true
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "lottery-data",
+      "database_id": "900a0db3-19df-4d0f-9690-8ce5951035a1"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "DOWNLOADS",
+      "bucket_name": "lottery-downloads"
+    }
+  ],
+  "triggers": {
+    // Runs daily at 10:00 Asia/Shanghai. Cron triggers use UTC.
+    "crons": ["0 2 * * *"]
+  }
+}
