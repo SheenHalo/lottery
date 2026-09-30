@@ -2765,9 +2765,9 @@ const DASHBOARD_HTML = `
     .donut-center {
       position: absolute;
       z-index: 5;
-      top: 47%;
+      top: 50%;
       left: 50%;
-      width: 92%;
+      width: 54%;
       transform: translate(-50%, -50%);
       pointer-events: none;
       text-align: center;
@@ -2783,7 +2783,7 @@ const DASHBOARD_HTML = `
     }
 
     .donut-center-value {
-      display: block;
+      display: inline-block;
       margin: 4px 0 2px;
       color: #17356e;
       font-size: 17px;
@@ -2793,6 +2793,27 @@ const DASHBOARD_HTML = `
 
     .donut-center-value.is-long { font-size: 14px; }
     .donut-center-value.is-very-long { font-size: 12px; }
+
+    .donut-legend {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0 2px 8px;
+      list-style: none;
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .donut-legend-item {
+      display: grid;
+      grid-template-columns: 9px minmax(0, 1fr) auto;
+      align-items: start;
+      gap: 6px;
+    }
+
+    .donut-legend-swatch { width: 9px; height: 9px; margin-top: 4px; border-radius: 2px; }
+    .donut-legend-name { color: #31517f; overflow-wrap: anywhere; }
+    .donut-legend-share { color: #17356e; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
     .structure-grid {
       display: grid;
@@ -3300,6 +3321,9 @@ const DASHBOARD_HTML = `
           charts[key].dispose();
         });
         charts = {};
+        document.querySelectorAll('.donut-center, .donut-legend').forEach(function (node) {
+          node.remove();
+        });
       }
 
       function makeChart(id, option) {
@@ -3586,7 +3610,7 @@ const DASHBOARD_HTML = `
         };
       }
 
-      function donutOption(rows, colors, centerValue, centerLabel) {
+      function donutOption(rows, colors) {
         if (!rows.length) {
           return {
             graphic: {
@@ -3605,24 +3629,31 @@ const DASHBOARD_HTML = `
               return item.name + '<br>' + formatYi(item.value * 10000) + ' (' + Number(item.percent).toFixed(1) + '%)';
             }
           },
-          legend: {
-            bottom: 0,
-            type: 'scroll',
-            itemWidth: 10,
-            itemHeight: 8,
-            textStyle: { color: '#607497', fontSize: 10 }
-          },
           series: [{
             type: 'pie',
-            radius: ['44%', '70%'],
-            center: ['50%', '47%'],
+            radius: ['62%', '84%'],
+            center: ['50%', '50%'],
             avoidLabelOverlap: true,
             itemStyle: { borderColor: '#fff', borderWidth: 2 },
-            label: { formatter: '{b}\\n{d}%', fontSize: 10 },
-            labelLine: { length: 8, length2: 5 },
+            label: { show: false },
+            labelLine: { show: false },
             data: rows.map(function (row) { return { name: row.name, value: toYi(row.value) }; })
           }]
         };
+      }
+
+      function fitDonutCenter(node) {
+        var value = node.querySelector('.donut-center-value');
+        if (!value || !node.clientWidth) {
+          return;
+        }
+        var availableWidth = Math.min(node.clientWidth, node.clientHeight) * 0.54;
+        var fontSize = 18;
+        value.style.fontSize = fontSize + 'px';
+        while (fontSize > 10 && value.getBoundingClientRect().width > availableWidth) {
+          fontSize -= 1;
+          value.style.fontSize = fontSize + 'px';
+        }
       }
 
       function renderDonutCenter(id, centerValue, centerLabel) {
@@ -3644,12 +3675,38 @@ const DASHBOARD_HTML = `
         center.innerHTML = '<span class="donut-center-label">' + escapeHtml(centerLabel || '总销售额') + '</span>' +
           '<strong class="' + valueClass + '">' + escapeHtml(valueText) + '</strong>' +
           '<span class="donut-center-unit">亿元</span>';
+        fitDonutCenter(node);
+      }
+
+      function renderDonutLegend(id, rows, colors) {
+        var node = el(id);
+        if (!node) {
+          return;
+        }
+        var legendId = id + 'Legend';
+        var legend = el(legendId);
+        if (!legend) {
+          legend = document.createElement('ul');
+          legend.id = legendId;
+          legend.className = 'donut-legend';
+          legend.setAttribute('aria-label', '分类销售额与占比');
+          node.insertAdjacentElement('afterend', legend);
+        }
+        var total = rows.reduce(function (sum, row) { return sum + numberValue(row.value); }, 0);
+        legend.innerHTML = rows.map(function (row, index) {
+          var share = total > 0 ? numberValue(row.value) / total * 100 : 0;
+          return '<li class="donut-legend-item" title="' + escapeHtml(row.name + '：' + formatYi(row.value)) + '">' +
+            '<span class="donut-legend-swatch" aria-hidden="true" style="background:' + colors[index % colors.length] + '"></span>' +
+            '<span class="donut-legend-name">' + escapeHtml(row.name) + '</span>' +
+            '<span class="donut-legend-share">' + share.toFixed(2) + '%</span></li>';
+        }).join('');
       }
 
       function renderDonut(id, rows, colors, centerValue, centerLabel) {
-        makeChart(id, donutOption(rows, colors, centerValue, centerLabel));
+        makeChart(id, donutOption(rows, colors));
         if (rows.length) {
           renderDonutCenter(id, centerValue, centerLabel);
+          renderDonutLegend(id, rows, colors);
         }
       }
 
@@ -4087,6 +4144,7 @@ const DASHBOARD_HTML = `
       el('monthlyExport').addEventListener('click', exportCurrent);
       window.addEventListener('resize', function () {
         Object.keys(charts).forEach(function (key) { charts[key].resize(); });
+        document.querySelectorAll('.donut-host').forEach(fitDonutCenter);
       });
 
       loadDashboard(false);
